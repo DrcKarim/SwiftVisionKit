@@ -40,3 +40,29 @@ public enum VisionOCR {
     }
 }
 
+#if canImport(UIKit)
+import UIKit
+
+public extension VisionOCR {
+    static func recognizeText(from image: UIImage) async throws -> String {
+        guard let cgImage = image.cgImage else {
+            throw VisionOCRError.invalidImage
+        }
+        return try await recognizeText(from: cgImage)
+    }
+}
+#endif
+
+#if canImport(AppKit)
+import AppKit
+
+public extension VisionOCR {
+    static func recognizeText(from image: NSImage) async throws -> String {
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            throw VisionOCRError.invalidImage
+        }
+        return try await recognizeText(from: cgImage)
+    }
+}
+#endif
+
