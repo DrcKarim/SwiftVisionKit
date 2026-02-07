@@ -4,44 +4,47 @@
 //
 //  Created by Karim Bouchaane on 07/02/2026.
 //
-
 import Vision
 
-public enum VisionObjectDetection {
+public enum VisionAnimalDetection {
 
-    /// Detects objects in a CGImage using Apple Vision.
-    public static func detectObjects(
+    /// Detects animals (cats, dogs, etc.) using Apple Vision.
+    public static func detectAnimals(
         from cgImage: CGImage
-    ) async throws -> [DetectedObject] {
+    ) async throws -> [DetectedAnimal] {
 
         try await withCheckedThrowingContinuation { continuation in
 
-            let request = VNRecognizeObjectsRequest { request, error in
+            let request = VNRecognizeAnimalsRequest { request, error in
                 if let error = error {
-                    continuation.resume(throwing: VisionObjectDetectionError.visionError(error))
+                    continuation.resume(
+                        throwing: VisionAnimalDetectionError.visionError(error)
+                    )
                     return
                 }
 
                 let observations = request.results as? [VNRecognizedObjectObservation] ?? []
 
                 if observations.isEmpty {
-                    continuation.resume(throwing: VisionObjectDetectionError.noObjectsFound)
+                    continuation.resume(
+                        throwing: VisionAnimalDetectionError.noAnimalsFound
+                    )
                     return
                 }
 
-                let objects: [DetectedObject] = observations.compactMap { observation in
+                let animals: [DetectedAnimal] = observations.compactMap { observation in
                     guard let topLabel = observation.labels.first else {
                         return nil
                     }
 
-                    return DetectedObject(
+                    return DetectedAnimal(
                         label: topLabel.identifier,
                         confidence: topLabel.confidence,
                         boundingBox: observation.boundingBox
                     )
                 }
 
-                continuation.resume(returning: objects)
+                continuation.resume(returning: animals)
             }
 
             let handler = VNImageRequestHandler(cgImage: cgImage)
@@ -49,7 +52,9 @@ public enum VisionObjectDetection {
             do {
                 try handler.perform([request])
             } catch {
-                continuation.resume(throwing: VisionObjectDetectionError.visionError(error))
+                continuation.resume(
+                    throwing: VisionAnimalDetectionError.visionError(error)
+                )
             }
         }
     }

@@ -7,14 +7,20 @@
 
 import CoreGraphics
 
-public struct DetectedObject {
+public struct DetectedAnimal: Sendable {
+
     public let label: String
     public let confidence: Float
     public let boundingBox: CGRect
 
-    public init(label: String, confidence: Float, boundingBox: CGRect) {
+    public init(
+        label: String,
+        confidence: Float,
+        boundingBox: CGRect
+    ) {
         self.label = label
         self.confidence = confidence
         self.boundingBox = boundingBox
     }
 }
+

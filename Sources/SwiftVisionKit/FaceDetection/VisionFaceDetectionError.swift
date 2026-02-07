@@ -1,12 +1,12 @@
 //
-//  VisionObjectDetectionError.swift
+//  VisionFaceDetectionError.swift
 //  SwiftVisionKit
 //
 //  Created by Karim Bouchaane on 07/02/2026.
 //
 
-public enum VisionObjectDetectionError: Error {
+public enum VisionFaceDetectionError: Error {
     case invalidImage
-    case noObjectsFound
+    case noFacesFound
     case visionError(Error)
 }

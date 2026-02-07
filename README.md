@@ -1,187 +1,145 @@
 # SwiftVisionKit
 
-**SwiftVisionKit** is a lightweight Swift package that provides clean, async/await wrappers around Apple Vision APIs for iOS and macOS.  
-It focuses on developer experience by hiding Vision boilerplate and exposing simple, modern Swift APIs.
+SwiftVisionKit is a lightweight, Apple-native Swift package that provides clean, async/await wrappers around Apple Vision for common on-device AI tasks on iOS and macOS.
+
+The goal of the library is to simplify Vision APIs while keeping everything:
+
+- Apple-native
+- Privacy-friendly (on-device)
+- Easy to integrate
+- Easy to extend
 
 ## Features
 
--  **On-device OCR** (text recognition)
--  **Async/await** based API
--  Supports **iOS** and **macOS**
--  Built on **Apple Vision**
--  **No network**, no backend, no data upload
--  Zero dependencies (other than Apple SDKs)
+ **Optical Character Recognition (OCR)**
+- Extract text from images
+- Async/await API
+- Language correction support
+
+ **Animal Detection (Apple Vision)**
+- Detect animals (cats, dogs, etc.)
+- Based on `VNRecognizeAnimalsRequest`
+- Returns labels, confidence, and bounding boxes
+
+ **Note:** Apple Vision does not provide generic object detection. This feature is limited to animals.
+
+ **Face Detection**
+- Detect faces in images
+- Bounding boxes only (no landmarks yet)
+- Fast and on-device
 
 ## Requirements
 
-- **iOS** 15.0+
-- **macOS** 12.0+
-- **Swift** 5.7+
+- iOS 15+
+- macOS 12+
+- Swift 5.7+
+- Xcode 14+
 
 ## Installation
 
 ### Swift Package Manager
 
-Add SwiftVisionKit to your project using Swift Package Manager:
+Add SwiftVisionKit using Xcode:
 
-1. In Xcode, select **File → Add Packages...**
+1. **File → Add Packages**
 2. Enter the repository URL:
    ```
    https://github.com/DrcKarim/SwiftVisionKit
    ```
-3. Select the version and add to your target
-
-Or add it to your `Package.swift`:
-
-```swift
-dependencies: [
-    .package(url: "https://github.com/DrcKarim/SwiftVisionKit", from: "1.0.0")
-]
-```
+3. Add the package to your target
 
 ## Usage
 
-### OCR from UIImage (iOS)
+Import the library:
 
 ```swift
 import SwiftVisionKit
-import UIKit
+```
 
-let image = UIImage(named: "document")!
+### OCR Example
+
+```swift
 let text = try await VisionOCR.recognizeText(from: image)
 print(text)
 ```
 
-### OCR from NSImage (macOS)
+Supported inputs:
+- `UIImage`
+- `NSImage`
+- `CGImage`
+
+### Animal Detection Example
+
+Detect animals using Apple Vision:
 
 ```swift
-import SwiftVisionKit
-import AppKit
+let animals = try await VisionAnimalDetection.detectAnimals(from: image)
 
-let image = NSImage(named: "document")!
-let text = try await VisionOCR.recognizeText(from: image)
-print(text)
-```
-
-### OCR from CGImage
-
-```swift
-import SwiftVisionKit
-
-let cgImage: CGImage = // your CGImage
-let text = try await VisionOCR.recognizeText(from: cgImage)
-print(text)
-```
-
-## Object Detection
-
-Detect objects in images using Apple Vision.
-
-### Example (iOS / macOS)
-
-```swift
-import SwiftVisionKit
-
-let objects = try await VisionObjectDetection.detectObjects(from: image)
-
-for object in objects {
-    print(object.label, object.confidence)
+for animal in animals {
+    print(animal.label, animal.confidence)
 }
 ```
 
-## Configuration
+Returned data:
+- `label` (e.g. "cat", "dog")
+- `confidence`
+- `boundingBox`
 
-You can customize OCR behavior using `VisionOCRConfiguration`:
+**Note:** This feature uses Apple Vision animal recognition.  
+Generic object detection will be added later using CoreML.
 
-```swift
-let config = VisionOCRConfiguration(
-    recognitionLevel: .accurate,  // or .fast
-    usesLanguageCorrection: true
-)
-
-// Configuration support coming soon
-let text = try await VisionOCR.recognizeText(
-    from: image,
-    configuration: config
-)
-```
-
-### Available Options
-
-- **`recognitionLevel`**: `.accurate` (default) or `.fast`
-- **`usesLanguageCorrection`**: `true` (default) or `false`
-
-## Error Handling
-
-SwiftVisionKit exposes library-level errors for better control:
+### Face Detection Example
 
 ```swift
-do {
-    let text = try await VisionOCR.recognizeText(from: image)
-    print(text)
-} catch VisionOCRError.invalidImage {
-    print("The provided image is invalid")
-} catch VisionOCRError.noTextFound {
-    print("No text was detected in the image")
-} catch VisionOCRError.visionError(let error) {
-    print("Vision framework error: \(error)")
-} catch {
-    print("Unexpected error: \(error)")
+let faces = try await VisionFaceDetection.detectFaces(from: image)
+
+for face in faces {
+    print(face.boundingBox)
 }
 ```
 
-### Error Types
+## Supported Platforms
 
-- **`VisionOCRError.invalidImage`**: The image could not be converted to CGImage
-- **`VisionOCRError.noTextFound`**: No text was detected in the image
-- **`VisionOCRError.visionError(Error)`**: Wrapper for underlying Vision framework errors
+| Platform | Supported |
+|----------|-----------|
+| iOS      | Yes       |
+| macOS    | Yes       |
+| watchOS  | No        |
+| tvOS     | No        |
 
-This keeps the API stable and predictable.
+## Architecture
 
-## Why SwiftVisionKit?
+SwiftVisionKit follows a clear internal structure:
 
-Apple Vision is powerful but verbose. SwiftVisionKit simplifies Vision usage into small, reusable, and testable APIs that feel natural in modern Swift codebases.
-
-**Before (vanilla Vision):**
-```swift
-let request = VNRecognizeTextRequest { request, error in
-    guard error == nil else { return }
-    let observations = request.results as? [VNRecognizedTextObservation] ?? []
-    let text = observations.compactMap { $0.topCandidates(1).first?.string }.joined(separator: "\n")
-    // handle callback-based result...
-}
-request.recognitionLevel = .accurate
-request.usesLanguageCorrection = true
-let handler = VNImageRequestHandler(cgImage: cgImage)
-try handler.perform([request])
+```
+SwiftVisionKit/
+├── OCR/
+├── AnimalDetection/
+├── FaceDetection/
 ```
 
-**After (SwiftVisionKit):**
-```swift
-let text = try await VisionOCR.recognizeText(from: image)
-```
+Each feature is isolated, making the library easy to maintain and extend.
 
 ## Roadmap
 
-- [ ] Object detection
-- [ ] Face detection and landmarks
-- [ ] Barcode and QR code scanning
-- [ ] PDF and batch image processing
-- [ ] Custom language support for OCR
-- [ ] Confidence scores for recognized text
+- Generic object detection using CoreML
+- Face landmarks
+- Confidence scores for OCR
+- Batch image processing
+- PDF text extraction
 
 ## Contributing
 
-Contributions are welcome! Please feel free to:
+Contributions are welcome.
 
-- Open an issue for bug reports or feature requests
-- Submit a pull request with improvements
-- Share feedback and suggestions
+You can:
+- Open issues for bugs or feature requests
+- Submit pull requests with improvements
+- Suggest new Vision-based features
+
+Please keep changes focused and consistent with the existing API style.
 
 ## License
 
-MIT License
-
----
-
-**Made with ❤️ by [Karim Bouchaane](https://github.com/DrcKarim)**
+MIT License  
+Copyright (c) 2026 Karim Bouchaane
