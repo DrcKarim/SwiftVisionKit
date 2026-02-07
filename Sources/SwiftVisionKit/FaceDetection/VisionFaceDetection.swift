@@ -12,8 +12,12 @@ public enum VisionFaceDetection {
     public static func detectFaces(from cgImage: CGImage) async throws -> [DetectedFace] {
 
         try await withCheckedThrowingContinuation { continuation in
-
+            var resumed = false
+            
             let request = VNDetectFaceRectanglesRequest { request, error in
+                guard !resumed else { return }
+                resumed = true
+                
                 if let error = error {
                     continuation.resume(
                         throwing: VisionFaceDetectionError.visionError(error)
@@ -34,9 +38,11 @@ public enum VisionFaceDetection {
             do {
                 try handler.perform([request])
             } catch {
-                
-                // Vision will call the request completion with an error
-                print("Vision handler error:", error)
+                guard !resumed else { return }
+                resumed = true
+                continuation.resume(
+                    throwing: VisionFaceDetectionError.visionError(error)
+                )
             }
         }
     }
