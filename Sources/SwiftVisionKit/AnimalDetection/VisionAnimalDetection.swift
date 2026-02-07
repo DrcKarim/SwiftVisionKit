@@ -8,12 +8,12 @@ import Vision
 
 public enum VisionAnimalDetection {
 
-    /// Detects animals (cats, dogs, etc.) using Apple Vision.
     public static func detectAnimals(from cgImage: CGImage) async throws -> [DetectedAnimal] {
+
         try await withCheckedThrowingContinuation { continuation in
 
             let request = VNRecognizeAnimalsRequest { request, error in
-                if let error {
+                if let error = error {
                     continuation.resume(
                         throwing: VisionAnimalDetectionError.visionError(error)
                     )
@@ -23,10 +23,10 @@ public enum VisionAnimalDetection {
                 let observations = request.results as? [VNRecognizedObjectObservation] ?? []
 
                 let animals = observations.compactMap { observation -> DetectedAnimal? in
-                    guard let topLabel = observation.labels.first else { return nil }
+                    guard let label = observation.labels.first else { return nil }
                     return DetectedAnimal(
-                        label: topLabel.identifier,
-                        confidence: topLabel.confidence,
+                        label: label.identifier,
+                        confidence: label.confidence,
                         boundingBox: observation.boundingBox
                     )
                 }
@@ -39,11 +39,10 @@ public enum VisionAnimalDetection {
             do {
                 try handler.perform([request])
             } catch {
-                continuation.resume(
-                    throwing: VisionAnimalDetectionError.visionError(error)
-                )
+                
+                print("Vision handler error:", error)
             }
         }
     }
-
 }
+
