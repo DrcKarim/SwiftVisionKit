@@ -9,12 +9,27 @@ import Vision
 
 public enum VisionOCR {
 
+    /// Recognize text from a CGImage with default configuration
     public static func recognizeText(from cgImage: CGImage) async throws -> String {
+        try await recognizeText(from: cgImage, configuration: VisionOCRConfiguration())
+    }
+    
+    /// Recognize text from a CGImage with custom configuration
+    public static func recognizeText(
+        from cgImage: CGImage,
+        configuration: VisionOCRConfiguration
+    ) async throws -> String {
         try await withCheckedThrowingContinuation { continuation in
-
+            var resumed = false
+            
             let request = VNRecognizeTextRequest { request, error in
+                guard !resumed else { return }
+                resumed = true
+                
                 if let error = error {
-                    continuation.resume(throwing: error)
+                    continuation.resume(
+                        throwing: VisionOCRError.visionError(error)
+                    )
                     return
                 }
 
@@ -26,15 +41,24 @@ public enum VisionOCR {
                 continuation.resume(returning: text)
             }
 
-            request.recognitionLevel = .accurate
-            request.usesLanguageCorrection = true
+            request.recognitionLevel = configuration.recognitionLevel
+            request.usesLanguageCorrection = configuration.usesLanguageCorrection
+            request.minimumTextHeight = configuration.minimumTextHeight
+            
+            if !configuration.recognitionLanguages.isEmpty {
+                request.recognitionLanguages = configuration.recognitionLanguages
+            }
 
             let handler = VNImageRequestHandler(cgImage: cgImage)
 
             do {
                 try handler.perform([request])
             } catch {
-                continuation.resume(throwing: error)
+                guard !resumed else { return }
+                resumed = true
+                continuation.resume(
+                    throwing: VisionOCRError.visionError(error)
+                )
             }
         }
     }
@@ -44,11 +68,23 @@ public enum VisionOCR {
 import UIKit
 
 public extension VisionOCR {
+    /// Recognize text from a UIImage with default configuration
     static func recognizeText(from image: UIImage) async throws -> String {
         guard let cgImage = image.cgImage else {
             throw VisionOCRError.invalidImage
         }
         return try await recognizeText(from: cgImage)
+    }
+    
+    /// Recognize text from a UIImage with custom configuration
+    static func recognizeText(
+        from image: UIImage,
+        configuration: VisionOCRConfiguration
+    ) async throws -> String {
+        guard let cgImage = image.cgImage else {
+            throw VisionOCRError.invalidImage
+        }
+        return try await recognizeText(from: cgImage, configuration: configuration)
     }
 }
 #endif
@@ -57,11 +93,23 @@ public extension VisionOCR {
 import AppKit
 
 public extension VisionOCR {
+    /// Recognize text from an NSImage with default configuration
     static func recognizeText(from image: NSImage) async throws -> String {
         guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
             throw VisionOCRError.invalidImage
         }
         return try await recognizeText(from: cgImage)
+    }
+    
+    /// Recognize text from an NSImage with custom configuration
+    static func recognizeText(
+        from image: NSImage,
+        configuration: VisionOCRConfiguration
+    ) async throws -> String {
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            throw VisionOCRError.invalidImage
+        }
+        return try await recognizeText(from: cgImage, configuration: configuration)
     }
 }
 #endif
