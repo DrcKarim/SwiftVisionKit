@@ -9,6 +9,8 @@ The goal of the library is to simplify Vision's text recognition APIs while keep
 - **Easy to integrate** - Simple async/await API
 - **Production-ready** - Proper error handling and configuration options
 
+![SwiftOCRKit Screenshot](screenshot.png)
+
 ## Features
 
  **Optical Character Recognition (OCR)**
